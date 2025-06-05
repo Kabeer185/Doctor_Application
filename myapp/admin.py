@@ -1,3 +1,5 @@
+from symtable import Class
+
 from django.contrib import admin
 from .models import *
 
@@ -6,7 +8,7 @@ from .models import *
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ['user_id','username','image','date_of_birth','gender','email','select_role','phone_number','password','is_varified']
+    list_display = ['user_id','username','image','date_of_birth','gender','email','select_role','phone_number','password','address','is_varified','about']
 
 
 
@@ -55,3 +57,81 @@ class MainProfileAdmin(admin.ModelAdmin):
 @admin.register(PatientProfile)
 class PatientProfileAdmin(admin.ModelAdmin):
     list_display = ['id','user','emergency_contact']
+
+@admin.register(WorkingHours)
+class WorkingHoursAdmin(admin.ModelAdmin):
+    list_display = ['id','doctor','day','start_time','end_time']
+
+
+@admin.register(Question)
+class QuestionAdmin(admin.ModelAdmin):
+    list_display = ['id','text','question_type']
+
+
+@admin.register(Option)
+class OptionAdmin(admin.ModelAdmin):
+    list_display = ['id','question','text','is_main_option','parent_option']
+
+
+@admin.register(PatientAssessment)
+class PatientAssessmentAdmin(admin.ModelAdmin):
+    list_display = ['id','user','created_at']
+
+
+
+@admin.register(PatientAssessmentAns)
+class PatientAssessmentAnsAdmin(admin.ModelAdmin):
+    list_display = ['id','assessment','question','select_main_option']
+
+
+
+@admin.register(WebQuestion)
+class WebQuestionAdmin(admin.ModelAdmin):
+    list_display = ['id','text','question_type']
+
+
+@admin.register(WebOption)
+class WbOptionAdmin(admin.ModelAdmin):
+    list_display = ['id','question','text']
+
+
+@admin.register(WebPatientAssessment)
+class WebPatientAssessmentAdmin(admin.ModelAdmin):
+    list_display = ['id','user','created_at']
+
+
+
+@admin.register(WebPatientAssessmentAns)
+class WebPatientAssessmentAnsAdmin(admin.ModelAdmin):
+    list_display = ['id','assessment','question']
+
+
+@admin.register(FAQs)
+class FAQsAdmin(admin.ModelAdmin):
+    list_display = ['id','question','answer']
+
+
+@admin.register(Appointment)
+class AppointmentAdmin(admin.ModelAdmin):
+   list_display = ['id','doctor','patient','created_by','appointment_type','phone_number','age','gender','email','blood_group','marital_status','date_time','duration','note','is_approved','created_at']
+
+
+@admin.register(DiagnosisDetail)
+class DiagnosisDetailAdmin(admin.ModelAdmin):
+    list_display = ['id','patient','diagnosis_type','text']
+
+
+@admin.register(LabReport)
+class LabReportAdmin(admin.ModelAdmin):
+    list_display = ['id','patient_name','date','laboratory','test_name','results']
+
+
+
+@admin.register(History)
+class HistoryAdmin(admin.ModelAdmin):
+    list_display = ['id','date_time','diagnosis_summery','lab_test']
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ['id','name']

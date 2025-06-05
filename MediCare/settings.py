@@ -14,6 +14,13 @@ from pathlib import Path
 from datetime import timedelta
 from allauth.account import app_settings as allauth_account_settings
 import os
+from dotenv import load_dotenv
+
+
+
+
+
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -22,18 +29,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-9zku7rijk%s0i5hhu4n3#(vjj^fw$11xi!7_g#em62fq6yz#va'
+SECRET_KEY='django-insecure-9zku7rijk%s0i5hhu4n3#(vjj^fw$11xi!7_g#em62fq6yz#va'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG=True
 
 ALLOWED_HOSTS=['*']
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:8000",
-
-]
+CORS_ALLOWED_ORIGINS = []
 
 
 # Application definition
@@ -66,6 +70,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -74,7 +79,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.BrokenLinkEmailsMiddleware',
 ]
 
@@ -153,14 +157,21 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'myapp.User'
 
+EMAIL_BACKEND=os.getenv("EMAIL_BACKEND")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS")
+EMAIL_HOST = os.getenv("EMAIL_HOST")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
 
 #Email Integration
-EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'
-EMAIL_USE_TLS=True
-EMAIL_HOST='smtp.gmail.com'
-EMAIL_HOST_USER='kabeerahmad256@gmail.com'
-EMAIL_HOST_PASSWORD='ncsp sscc ayto amow'
-EMAIL_PORT=587
+
+EMAIL_BACKEND=EMAIL_BACKEND
+EMAIL_USE_TLS=EMAIL_USE_TLS
+EMAIL_HOST=EMAIL_HOST
+EMAIL_HOST_USER=EMAIL_HOST_USER
+EMAIL_HOST_PASSWORD=EMAIL_HOST_PASSWORD
+EMAIL_PORT=EMAIL_PORT
 
 
 #JWT AUTH
@@ -183,7 +194,7 @@ SIMPLE_JWT = {
 DJANGO_REST_PASSWORDRESET_TOKEN_CONFIG = {
     "CLASS": "django_rest_passwordreset.tokens.RandomNumberTokenGenerator",
     "OPTIONS": {
-        "min_number":0,
+        "min_number":11111,
         "max_number":99999,
         "number_format":"%05d",
     }
@@ -198,6 +209,27 @@ SITE_ID = 1
 ACCOUNT_EMAIL_VARIFICATION='none'
 
 
+SOCIALACCOUNT_PROVIDERS ={
+    "google": {
+        'SCOPE': ['profile', 'email',],
+        'APP': {
+            'client_id': os.getenv("GOOGLE_CLIENT_ID"),
+             'secret': os.getenv("GOOGLE_SECRET"),
+        }},
+
+
+    'facebook': {
+            'METHOD': 'oauth2',
+            'SCOPE': ['email','public_profile'],
+            'APP': {
+                 'client_id': os.getenv("FACEBOOK_CLIENT_ID"),
+                 'secret': os.getenv("FACEBOOK_SECRET"),
+            },
+            'OAUTH_PKCE_ENABLED': True,
+
+
+        },
+}
 REST_AUTH = {
     "USE_JWT": True,
     "JWT_AUTH_COOKIE": "_auth",
@@ -222,3 +254,5 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
