@@ -16,6 +16,8 @@ from allauth.account import app_settings as allauth_account_settings
 import os
 from dotenv import load_dotenv
 
+from corsheaders.defaults import default_headers
+
 
 
 
@@ -39,6 +41,15 @@ CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = []
 
+CORS_ALLOW_HEADERS =list(default_headers) + [
+    "accept",
+    "authorization",
+    "content-type",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+"ngrok-skip-browser-warning"
+]
 
 # Application definition
 

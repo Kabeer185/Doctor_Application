@@ -206,7 +206,7 @@ class Appointment(models.Model):
     doctor=models.ForeignKey(User,on_delete=models.CASCADE,related_name='appointment_doctor',limit_choices_to={"select_role":"doctor"})
     patient=models.TextField()
     created_by=models.ForeignKey(User,on_delete=models.CASCADE,related_name='appointment_created_by')
-    appointment_type=models.CharField(choices=APPOINTMENT_TYPE,max_length=50)
+    appointment_type=models.CharField(choices=APPOINTMENT_TYPE,max_length=50,null=True,blank=True)
     phone_number=models.CharField(null=True,blank=True)
     age = models.PositiveIntegerField(null=True, blank=True)
     gender = models.CharField(max_length=50, null=True, blank=True)
@@ -258,7 +258,7 @@ class LabReport(models.Model):
     report_detail=models.TextField(null=True,blank=True)
 
 
-class History(models.Model):
+class PatientHistory(models.Model):
     STATUS_CHOICES=[
         ("recovered", "Recovered"),
         ("pending", "Pending"),
@@ -266,11 +266,24 @@ class History(models.Model):
         ("cancelled", "Cancelled"),
         ("expired", "Expired"),
     ]
-    # patient_name=models.ManyToManyField
-    date_time=models.DateTimeField(auto_now_add=True)
+    appointment=models.ForeignKey(Appointment,on_delete=models.CASCADE)
     diagnosis_summery=models.ForeignKey(DiagnosisDetail,on_delete=models.CASCADE,related_name='history')
-    lab_test=models.ForeignKey(LabReport,on_delete=models.CASCADE,related_name='lab_test_history')
     status=models.CharField(choices=STATUS_CHOICES,max_length=50,null=True,blank=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+
+    @property
+    def patient(self):
+        return self.appointment.patient
+
+    @property
+    def doctor(self):
+        return self.appointment.doctor
+
+
+
+class HistoryRelation(models.Model):
+    history=models.ForeignKey(PatientHistory,on_delete=models.CASCADE)
+    lab_report=models.ForeignKey(LabReport,on_delete=models.CASCADE)
 
 
 class Category(models.Model):

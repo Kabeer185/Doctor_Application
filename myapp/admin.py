@@ -11,6 +11,10 @@ class UserAdmin(admin.ModelAdmin):
     list_display = ['user_id','username','image','date_of_birth','gender','email','select_role','phone_number','password','address','is_varified','about']
 
 
+@admin.register(StaffDoctorRelation)
+class StaffDoctorRelationAdmin(admin.ModelAdmin):
+    list_display = ['id','doctor','staff','assigned_at']
+
 
 @admin.register(OTP)
 class OTPAdmin(admin.ModelAdmin):
@@ -113,7 +117,7 @@ class FAQsAdmin(admin.ModelAdmin):
 
 @admin.register(Appointment)
 class AppointmentAdmin(admin.ModelAdmin):
-   list_display = ['id','doctor','patient','created_by','appointment_type','phone_number','age','gender','email','blood_group','marital_status','date_time','duration','note','is_approved','created_at']
+   list_display = ['id','doctor','patient','created_by','appointment_type','phone_number','age','gender','email','blood_group','marital_status','date_time','duration','note','is_approved','created_at','status']
 
 
 @admin.register(DiagnosisDetail)
@@ -127,9 +131,9 @@ class LabReportAdmin(admin.ModelAdmin):
 
 
 
-@admin.register(History)
-class HistoryAdmin(admin.ModelAdmin):
-    list_display = ['id','date_time','diagnosis_summery','lab_test']
+@admin.register(PatientHistory)
+class PatientHistoryAdmin(admin.ModelAdmin):
+    list_display = ['id','diagnosis_summery','created_at']
 
 
 @admin.register(Category)

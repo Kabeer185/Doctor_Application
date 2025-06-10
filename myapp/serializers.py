@@ -317,9 +317,6 @@ class AppointmentSerializer(serializers.ModelSerializer):
         return data
 
     def validate(self,data):
-        appointment_type=data.get('appointment_type')
-        if appointment_type  not in ['regular check_up','urgent check_up']:
-            raise serializers.ValidationError('Invalid appointment type')
 
         doctor=data.get('doctor')
         date_time=data.get('date_time')
@@ -327,9 +324,9 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
         if not doctor or not date_time or not patient:
             return data
-        weekday=data.get('%A')
+        weekday=date_time.strftime('%A')
         try:
-            working_hours=WorkingHours.objects.get(user=doctor ,day=weekday)
+            working_hours=WorkingHours.objects.get(doctor=doctor ,day=weekday)
         except WorkingHours.DoesNotExist:
             raise serializers.ValidationError({
                 "date_time":f"Doctor  is not available on{weekday} "
@@ -389,9 +386,9 @@ class LabReportSerializer(serializers.ModelSerializer):
 
 
 
-class HistorySerializer(serializers.ModelSerializer):
+class PatientHistorySerializer(serializers.ModelSerializer):
     class Meta:
-        model=History
+        model=PatientHistory
         fields='__all__'
 
 

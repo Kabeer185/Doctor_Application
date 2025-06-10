@@ -38,7 +38,7 @@ router.register(r'faqs',FAQViewSet,basename='faqs')
 router.register(r'appointments',AppointmentViewSet,basename='appointments')
 router.register(r'diagnosis_detail',DiagnosisDetailViewSet,basename='diagnosis_detail')
 router.register(r'lab_report',LabReportViewSet,basename='lab_report')
-router.register(r'history',HistoryViewSet,basename='history')
+router.register(r'history',PatientHistoryViewSet,basename='history')
 router.register(r'category',CategoryViewSet,basename='category')
 
 

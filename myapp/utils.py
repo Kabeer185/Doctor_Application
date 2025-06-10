@@ -34,5 +34,6 @@ def get_available_slots(doctor,selected_date,slot_minutes=30):
         date_time__date=selected_date,
         status='upcoming',
     ).values_list('date_time',flat=True)
-    available = [slot.strftime('%H:%M') for slot in all_slots if slot not in  booked]
+    booked_time =set(dt.strftime('%H:%M') for dt in booked)
+    available = [slot.strftime('%H:%M') for slot in all_slots if slot.strftime('%H:%M')  not in  booked_time]
     return available

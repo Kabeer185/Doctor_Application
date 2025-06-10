@@ -112,6 +112,7 @@ class StaffDoctorRelationViewSet(viewsets.ModelViewSet):
 
 
 
+
 class VerifyOTPView(viewsets.ModelViewSet):
     queryset = OTP.objects.all()
     serializer_class = OTPSerializer
@@ -496,7 +497,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             )
             qs=(Appointment.objects.filter(doctor_id__in=doctors_ids))
         elif user.select_role =='doctor':
-            qs=Appointment.objects.filter(doctor=user)
+            qs=Appointment.objects.filter(doctor=user.user)
         else:
             qs=Appointment.objects.none()
 
@@ -529,10 +530,10 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         status_count=queryset.aggregate(
-            total =Count(id),
-            upcoming=Count(id,filter=Q(status='upcoming')),
-            completed=Count(id,filter=Q(status='completed')),
-            cancelled=Count(id,filter=Q(status='cancelled')),
+            total =Count('pk'),
+            upcoming=Count('pk',filter=Q(status='upcoming')),
+            completed=Count('pk',filter=Q(status='completed')),
+            cancelled=Count('pk',filter=Q(status='cancelled')),
         )
 
         serializer = self.get_serializer(queryset, many=True)
@@ -569,6 +570,10 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     @action(detail=True,methods=['patch'],permission_classes=[IsAuthenticated,CanUpdateAppointments])
     def reschedule(self,request,pk=None):
         appointment = self.get_object()
+
+        if appointment.status == 'cancelled':
+            appointment.status = 'upcoming'
+            appointment.cancelled_at=None
         new_datetime_str=request.data.get('date_time')
 
         if not new_datetime_str:
@@ -601,7 +606,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         if not doctor_id or not date:
             return  Response({"error":"Doctor_id or date is required"},status=status.HTTP_400_BAD_REQUEST)
         try:
-            doctor=User.objects.get(id=doctor_id,select_role='doctor')
+            doctor=User.objects.get(user_id=doctor_id,select_role='doctor')
 
         except User.DoesNotExist:
             return Response({"error":"Doctor does not found"},status=status.HTTP_400_BAD_REQUEST)
@@ -618,7 +623,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False,methods=['get'])
     def today_schedule(self,request):
-        qs=self.get_queryset().filter(date= date.today()).order_by('start_time')
+        qs=self.get_queryset().filter(date_time__date= date.today()).order_by('date_time')
         serializer=self.get_serializer(qs,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
@@ -626,7 +631,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False,methods=['get'])
     def upcoming_schedule(self,request):
-        qs = self.get_queryset().filter(date__gt= date.today()).order_by("date","start_time")
+        qs = self.get_queryset().filter(date_time__date__gt= date.today()).order_by("date_time")
         serializer=self.get_serializer(qs,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
 
@@ -658,9 +663,9 @@ class LabReportViewSet(viewsets.ModelViewSet):
 
 
 
-class HistoryViewSet(viewsets.ModelViewSet):
-    queryset = History.objects.all()
-    serializer_class = HistorySerializer
+class PatientHistoryViewSet(viewsets.ModelViewSet):
+    queryset = PatientHistory.objects.all()
+    serializer_class = PatientHistorySerializer
     permission_classes = [IsAuthenticated]
 
 
