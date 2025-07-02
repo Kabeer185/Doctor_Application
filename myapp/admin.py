@@ -1,5 +1,3 @@
-from symtable import Class
-
 from django.contrib import admin
 from .models import *
 
@@ -8,12 +6,12 @@ from .models import *
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ['user_id','username','image','date_of_birth','gender','email','select_role','phone_number','password','address','is_varified','about']
+    list_display = ['user_id','username','image','date_of_birth','gender','email','select_role','phone_number','password','address','is_varified','about','experience','price','stripe_customer_id']
 
 
-@admin.register(StaffDoctorRelation)
-class StaffDoctorRelationAdmin(admin.ModelAdmin):
-    list_display = ['id','doctor','staff','assigned_at']
+@admin.register(StaffManagement)
+class StaffManagementAdmin(admin.ModelAdmin):
+    list_display = ['id','doctor','staff','staff_role','start_time','end_time','duty','assigned_at']
 
 
 @admin.register(OTP)
@@ -120,20 +118,38 @@ class AppointmentAdmin(admin.ModelAdmin):
    list_display = ['id','doctor','patient','created_by','appointment_type','phone_number','age','gender','email','blood_group','marital_status','date_time','duration','note','is_approved','created_at','status']
 
 
+@admin.register(Diagnosis)
+class DiagnosisAdmin(admin.ModelAdmin):
+    list_display = ['id','appointment','created_at']
+
+
+
 @admin.register(DiagnosisDetail)
 class DiagnosisDetailAdmin(admin.ModelAdmin):
-    list_display = ['id','patient','diagnosis_type','text']
+    list_display = ['id','diagnosis','diagnosis_type','text']
 
 
 @admin.register(LabReport)
 class LabReportAdmin(admin.ModelAdmin):
-    list_display = ['id','patient_name','date','laboratory','test_name','results']
+    list_display = ['id','appointment','date','laboratory','test_name','results','report_detail']
 
 
 
 @admin.register(PatientHistory)
 class PatientHistoryAdmin(admin.ModelAdmin):
-    list_display = ['id','diagnosis_summery','created_at']
+    list_display = ['id','appointment','status','created_at']
+
+
+
+@admin.register(AppointmentReminder)
+class AppointmentReminderAdmin(admin.ModelAdmin):
+    list_display = ['id','appointment','datetime','location','reasons_to_reschedule','notification','is_rescheduled']
+
+
+
+@admin.register(MedicineReminder)
+class MedicineReminderAdmin(admin.ModelAdmin):
+    list_display = ['id','appointment','medicine_name','dosage','date_time','medicine_status','notification']
 
 
 @admin.register(Category)

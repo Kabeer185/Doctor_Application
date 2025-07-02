@@ -1,10 +1,10 @@
 import random
 from rest_framework import serializers
 from .models import *
-from datetime import timedelta
+from fcm_django.admin import FCMDevice
 from django.utils import timezone
 from allauth.account import app_settings
-from .utils import get_available_slots
+from .utils import *
 
 
 
@@ -17,8 +17,11 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['user_id','username','image','date_of_birth','gender','select_role','email','phone_number','password','address','about']
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ['user_id','username','image','date_of_birth','gender','select_role','email','phone_number','password','address','about','experience','price','stripe_customer_id']
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'stripe_customer_id':{'read_only': True},
+        }
 
 
 
@@ -67,10 +70,23 @@ class UserSerializer(serializers.ModelSerializer):
         return data
 
 
-class StaffDoctorRelationSerializer(serializers.ModelSerializer):
+class StaffManagementSerializer(serializers.ModelSerializer):
+    staff_detail=UserSerializer(source='staff',read_only=True)
+    staff=serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(select_role='staff'),write_only=True)
     class Meta:
-        model = StaffDoctorRelation
-        fields = '__all__'
+        model = StaffManagement
+        fields = ['id','staff','staff_role','start_time','end_time','duty','assigned_at','staff_detail']
+
+    def validate(self, data):
+        request=self.context['request']
+        user =request.user
+        if user.select_role !='doctor':
+            raise serializers.ValidationError("Only Doctor can assign staff.")
+        return data
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        return StaffManagement.objects.create(doctor=user, **validated_data)
 
 
 
@@ -171,6 +187,30 @@ class WorkingHoursSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkingHours
         fields = ['id','doctor','day','start_time','end_time']
+    def validate(self,data):
+        request=self.context['request']
+        doctor=request.user
+        day=data.get('day')
+        start_time=data.get('start_time')
+        end_time=data.get('end_time')
+
+        if not day:
+            raise serializers.ValidationError("Day is  required.")
+        if not start_time or not end_time:
+            raise serializers.ValidationError("Start & End Time is required.")
+
+        qs=WorkingHours.objects.filter(doctor=doctor,day=day)
+        if self.instance:
+            qs=qs.exclude(pk=self.instance.pk)
+
+        if qs.exists():
+            raise serializers.ValidationError(f"The Schedule for {day} already exists for this doctor .")
+
+        return data
+    def create(self, validated_data):
+        validated_data['doctor']=self.context['request'].user
+        return super().create(validated_data)
+
 
 
 class MainProfileSerializer(serializers.ModelSerializer):
@@ -306,15 +346,16 @@ class FAQsSerializer(serializers.ModelSerializer):
 
 
 class AppointmentSerializer(serializers.ModelSerializer):
+    doctor_detail=UserSerializer(source='doctor',read_only=True)
     class Meta:
         model=Appointment
-        fields='__all__'
+        fields=['id','status','doctor_detail','doctor','created_by','patient','appointment_type','phone_number','age','gender','email','blood_group','marital_status','date_time','duration','note']
         read_only_fields=['created_by', 'status', 'is_approved', 'cancelled_at', 'created_at']
 
-    def validate_date_time(self,data):
-        if data<timezone.now():
-            raise serializers.ValidationError('Date must be in the future')
-        return data
+    # def validate_date_time(self,data):
+    #     if data<timezone.now():
+    #         raise serializers.ValidationError('Date must be in the future')
+    #     return data
 
     def validate(self,data):
 
@@ -329,7 +370,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             working_hours=WorkingHours.objects.get(doctor=doctor ,day=weekday)
         except WorkingHours.DoesNotExist:
             raise serializers.ValidationError({
-                "date_time":f"Doctor  is not available on{weekday} "
+                "date_time":f"Doctor  is not available on {weekday} "
             })
         if not (working_hours.start_time <= date_time.time()<working_hours.end_time):
             raise serializers.ValidationError({
@@ -352,47 +393,149 @@ class AppointmentSerializer(serializers.ModelSerializer):
             status='upcoming'
         ).exists():
             raise serializers.ValidationError({
-                "patent":"This patient is already booked ",
+                "patient":"This patient is already booked ",
             })
         return data
 
 
+class DoctorSerializers(serializers.ModelSerializer):
+    class Meta:
+        model=User
+        fields = ['user_id', 'select_role','username', 'email', 'phone_number', 'gender', 'date_of_birth', 'image', 'address','about','experience','price']
+
+
+class StaffSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=User
+        fields = ['user_id','select_role', 'username', 'email', 'phone_number', 'gender', 'date_of_birth', 'image', 'address','about','experience','price']
 
 
 class DiagnosisDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model=DiagnosisDetail
-        fields='__all__'
+        fields=['id','diagnosis_type','text']
+
+
+
+class DiagnosisSerializer(serializers.ModelSerializer):
+    diagnosis_detail=DiagnosisDetailSerializer(many=True)
+    appointment=serializers.PrimaryKeyRelatedField(queryset=Appointment.objects.all(),required=True)
+    class Meta:
+        model=Diagnosis
+        fields=['id','appointment','diagnosis_detail']
 
     def validate(self, data):
         request=self.context['request']
         user=request.user
-        appointment=data.get('patient')
-        if not appointment:
-            raise serializers.ValidationError({"error":"Appointment are required"})
+        appointment=data.get('appointment')
+
 
         if request.method == 'POST':
             if user.select_role != 'doctor':
                 raise serializers.ValidationError("Only doctor can create diagnosis")
+            if not appointment:
+                raise serializers.ValidationError({"error": "Appointment are required"})
             if appointment.doctor != user:
                 raise serializers.ValidationError("You are not assigned  to this appointment")
+            if Diagnosis.objects.filter(appointment=appointment).exists():
+                raise serializers.ValidationError("Diagnosis already exists for this appointment")
         return data
+
+    def create(self, validated_data):
+        details_data = validated_data.pop('diagnosis_detail')
+        diagnosis = Diagnosis.objects.create(**validated_data)
+
+        for detail in details_data:
+            DiagnosisDetail.objects.create(diagnosis=diagnosis, **detail)
+
+        return diagnosis
 
 
 class LabReportSerializer(serializers.ModelSerializer):
     class Meta:
         model=LabReport
         fields='__all__'
+    def validate(self,data):
+        request=self.context['request']
+        user=request.user
+        appointment=data.get('appointment')
+        doctor=appointment.doctor
+
+        if request.method == 'POST':
+            if user.select_role != 'staff':
+                raise serializers.ValidationError("Only staff can create lab report")
+            if not appointment:
+                raise serializers.ValidationError({"error": "Appointment are required"})
+            if not is_lab_technician_staff(user, doctor):
+                raise serializers.ValidationError("You are not authorized as a lab technician for this doctor.")
+        return data
+
 
 
 
 class PatientHistorySerializer(serializers.ModelSerializer):
+    appointment_detail=AppointmentSerializer(source='appointment',many=False,read_only=True)
+    diagnosis_detail=DiagnosisSerializer(source='appointment.diagnosis',read_only=True)
+    lab_reports_detail=LabReportSerializer(source='appointment.lab_report_appointment',many=True,read_only=True)
     class Meta:
         model=PatientHistory
-        fields='__all__'
+        fields=['id','appointment_detail','diagnosis_detail','lab_reports_detail','created_at','status']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        if 'appointment_detail' in data and data['appointment_detail'] == {}:
+            data['appointment_detail'] = None
+
+        if 'diagnosis_detail' in data and data['diagnosis_detail'] == {}:
+            data['diagnosis_detail'] = None
+
+        if 'lab_reports_detail' in data and data['lab_reports_detail'] == []:
+            data['lab_reports_detail'] = None
+        return data
 
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model=Category
         fields='__all__'
+
+class FCMDeviceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=FCMDevice
+        fields = ['id', 'registration_id', 'type', 'user']
+        extra_kwargs = {'user': {'read_only': True}}
+
+
+class AppointmentReminderSerializer(serializers.ModelSerializer):
+    doctor_name=serializers.SerializerMethodField()
+    class Meta:
+        model=AppointmentReminder
+        fields=['id','appointment','location','datetime','reasons_to_reschedule','notification','is_rescheduled','doctor_name']
+
+
+    def get_doctor_name(self,obj):
+        try:
+            doctor=obj.appointment.doctor
+            return doctor.username if doctor else None,
+
+        except AttributeError:
+            return None
+
+    def validate(self,data):
+        appointment=data.get('appointment')
+        reminder_datetime=data.get('datetime')
+
+        if appointment and reminder_datetime:
+            appointment_datetime=appointment.date_time
+            if reminder_datetime > appointment_datetime:
+                raise serializers.ValidationError("Reminder date_time must be less then Appointment date_time")
+
+        return data
+
+
+
+class MedicineReminderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=MedicineReminder
+        fields=['id','appointment','medicine_name','dosage','date_time','medicine_status','notification']

@@ -15,10 +15,11 @@ from datetime import timedelta
 from allauth.account import app_settings as allauth_account_settings
 import os
 from dotenv import load_dotenv
-
 from corsheaders.defaults import default_headers
 
 
+import firebase_admin
+from firebase_admin import credentials
 
 
 
@@ -36,20 +37,7 @@ SECRET_KEY='django-insecure-9zku7rijk%s0i5hhu4n3#(vjj^fw$11xi!7_g#em62fq6yz#va'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG=True
 
-ALLOWED_HOSTS=['*']
-CORS_ORIGIN_ALLOW_ALL = True
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = []
 
-CORS_ALLOW_HEADERS =list(default_headers) + [
-    "accept",
-    "authorization",
-    "content-type",
-    "user-agent",
-    "x-csrftoken",
-    "x-requested-with",
-"ngrok-skip-browser-warning"
-]
 
 # Application definition
 
@@ -76,7 +64,10 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.facebook',
     'allauth.socialaccount.providers.google',
     'corsheaders',
-
+    'fcm_django',
+    'firebase_admin',
+    'django_celery_beat',
+    'django_filters'
 
 ]
 
@@ -91,6 +82,21 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'django.middleware.common.BrokenLinkEmailsMiddleware',
+]
+
+ALLOWED_HOSTS=['*']
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = []
+
+CORS_ALLOW_HEADERS =list(default_headers) + [
+    "accept",
+    "authorization",
+    "content-type",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+"ngrok-skip-browser-warning"
 ]
 
 ROOT_URLCONF = 'MediCare.urls'
@@ -191,7 +197,11 @@ REST_FRAMEWORK = {
 
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'EXCEPTION_HANDLER': 'myapp.utils.custom_exception_handler',
+    # 'DEFAULT_FILTER_BACKENDS': (
+    #     'django_filters.rest_framework.DjangoFilterBackend')
 }
+
 SIMPLE_JWT = {
     "USER_ID_FIELD": "user_id",
     "USER_ID_CLAIM": "user_id",
@@ -247,8 +257,9 @@ REST_AUTH = {
     "JWT_AUTH_REFRESH_COOKIE": "_refresh",
     "JWT_AUTH_HTTPONLY": False,
 }
-# Signup login  with email configuration
 
+
+# Signup login  with email configuration
 ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_FIELDS={
     "username":{"required":True},
@@ -267,3 +278,33 @@ AUTHENTICATION_BACKENDS = [
 ]
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+#celery
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
+
+#Firebase
+# FIREBASE_CREDENTIALS_PATH = r'/home/kabeer-ahmad/PycharmProjects/Doctor_Application/medicare-69ff6-firebase-adminsdk-fbsvc-fe70f76a2c.json'
+firebase_cred = {
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'
+# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+# CELERY_ACCEPT_CONTENT = ['application/json']
+# CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_TIMEZONE = 'UTC'
+}
+firebase_admin.initialize_app(firebase_cred)
+
+BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+# CELERY_BEAT_SCHEDULE ={
+#  "send-notification-every-60-seconds": {
+#         "task": "myapp.tasks.send_appointment_reminder",
+#         "schedule": 60.0,
+#     },
+# }
+

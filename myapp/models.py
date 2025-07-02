@@ -26,12 +26,28 @@ class User(AbstractUser):
     address=models.CharField(max_length=150,null=True,blank=True)
     image=models.ImageField(null=True,blank=True)
     about=models.TextField(null=True,blank=True)
+    experience=models.CharField(max_length=50,null=True,blank=True)
+    price=models.PositiveIntegerField(null=True,blank=True)
+    stripe_customer_id=models.CharField(max_length=50,null=True,blank=True)
 
 
 
-class StaffDoctorRelation(models.Model):
+
+class StaffManagement(models.Model):
+    STAFF_ROLE_CHOICES = [
+        ('Medical Assistant','Medical Assistant'),
+        ('Administrator','Administrator'),
+        ('Lab Technician','Lab Technician'),
+        ('Cleaner','Cleaner'),
+        ('Ward Nurse','Ward Nurse'),
+    ]
+
     doctor=models.ForeignKey(User,on_delete=models.CASCADE,related_name='doctor_assigned_staff',limit_choices_to={'select_role':'doctor'})
     staff=models.ForeignKey(User,on_delete=models.CASCADE,related_name='staff_assigned_doctor',limit_choices_to={'select_role':'staff'})
+    staff_role=models.CharField(max_length=50,choices=STAFF_ROLE_CHOICES)
+    start_time=models.TimeField(null=True,blank=True)
+    end_time=models.TimeField(null=True,blank=True)
+    duty=models.TextField(null=True,blank=True)
     assigned_at=models.DateTimeField(auto_now_add=True)
 
 
@@ -105,9 +121,9 @@ class WorkingHours(models.Model):
         ('Sunday', 'Sunday'),
     ]
     doctor=ForeignKey(User,on_delete=models.CASCADE,related_name='working_hours',null=True,blank=True)
-    day=models.CharField(max_length=50,choices=DAYS_OF_WEEK,null=True,blank=True)
-    start_time=models.TimeField(null=True,blank=True)
-    end_time=models.TimeField(null=True,blank=True)
+    day=models.CharField(max_length=50,choices=DAYS_OF_WEEK)
+    start_time=models.TimeField()
+    end_time=models.TimeField()
 
 
 class MainProfile(models.Model):
@@ -222,19 +238,24 @@ class Appointment(models.Model):
     created_at=models.DateTimeField(auto_now_add=True)
 
 
+class Diagnosis(models.Model):
+    appointment=models.OneToOneField(Appointment,on_delete=models.CASCADE,related_name='diagnosis')
+    created_at=models.DateTimeField(auto_now_add=True)
+
+
 
 class DiagnosisDetail(models.Model):
     FIELDS_CHOICES=[
-        ('compliants','Compliants'),
+        ('compliant','Compliant'),
         ('history & symptoms','History & Symptoms'),
         ('physical examination','Physical Examination'),
         ('diagnosis','Diagnosis'),
         ('treatment plan','Treatment Plan'),
-        ('recomended test','Recommended Test'),
+        ('recommended test','Recommended Test'),
         ('medication','Medication'),
         ('immediate attention required ','Immediate Attention Required'),
     ]
-    patient=models.ForeignKey(Appointment,on_delete=models.CASCADE,related_name='diagnosis_patient')
+    diagnosis=models.ForeignKey(Diagnosis,on_delete=models.CASCADE,related_name='diagnosis_detail',null=True,blank=True)
     diagnosis_type=models.CharField(choices=FIELDS_CHOICES,max_length=50,null=True,blank=True)
     text=models.TextField(null=True,blank=True)
 
@@ -250,11 +271,11 @@ class LabReport(models.Model):
         ('borderline', 'Borderline'),
         ('detected', 'Detected'),
     ]
-    patient_name=models.CharField(max_length=50,null=True,blank=True)
+    appointment=models.ForeignKey(Appointment,on_delete=models.CASCADE,related_name='lab_report_appointment')
     date=models.DateTimeField(auto_now_add=True)
     laboratory=models.CharField(max_length=50,null=True,blank=True)
     test_name=models.CharField(max_length=50,null=True,blank=True)
-    results=models.CharField(max_length=50,choices=RESULT_CHOICES)
+    results=models.CharField(max_length=50,choices=RESULT_CHOICES,null=True,blank=True)
     report_detail=models.TextField(null=True,blank=True)
 
 
@@ -266,24 +287,35 @@ class PatientHistory(models.Model):
         ("cancelled", "Cancelled"),
         ("expired", "Expired"),
     ]
-    appointment=models.ForeignKey(Appointment,on_delete=models.CASCADE)
-    diagnosis_summery=models.ForeignKey(DiagnosisDetail,on_delete=models.CASCADE,related_name='history')
-    status=models.CharField(choices=STATUS_CHOICES,max_length=50,null=True,blank=True)
+    appointment=models.OneToOneField(Appointment,on_delete=models.CASCADE)
+    status=models.CharField(choices=STATUS_CHOICES,max_length=50,default='pending')
     created_at=models.DateTimeField(auto_now_add=True)
 
-    @property
-    def patient(self):
-        return self.appointment.patient
-
-    @property
-    def doctor(self):
-        return self.appointment.doctor
 
 
+class AppointmentReminder(models.Model):
+    appointment=models.ForeignKey(Appointment,on_delete=models.CASCADE,related_name='reminder_appointment')
+    datetime=models.DateTimeField()
+    location=models.CharField(max_length=50,null=True,blank=True)
+    reasons_to_reschedule=models.TextField(null=True,blank=True)
+    notification=models.BooleanField(default=False)
+    is_rescheduled=models.BooleanField(default=False)
 
-class HistoryRelation(models.Model):
-    history=models.ForeignKey(PatientHistory,on_delete=models.CASCADE)
-    lab_report=models.ForeignKey(LabReport,on_delete=models.CASCADE)
+
+
+class MedicineReminder(models.Model):
+    MEDICINES_STATUS_CHOICES=[
+        ('Taken', 'Taken'),
+        ('Pending', 'Pending'),
+        ('Skipped', 'Skipped'),
+    ]
+    appointment=models.ForeignKey(Appointment,on_delete=models.CASCADE,related_name='medicine_reminder')
+    medicine_name=models.CharField(max_length=50,null=True,blank=True)
+    dosage=models.CharField(max_length=50,null=True,blank=True)
+    date_time=models.DateTimeField(null=True,blank=True)
+    medicine_status=models.CharField(choices=MEDICINES_STATUS_CHOICES,max_length=50,null=True,blank=True)
+    notification =models.BooleanField(default=False)
+
 
 
 class Category(models.Model):

@@ -18,7 +18,7 @@ class ApiRootView(APIView):
 
 router = DefaultRouter()
 router.register(r'signup',SignUpView,basename='signup')
-router.register(r'staff_doctor_relation',StaffDoctorRelationViewSet,basename='staff_doctor_relation')
+router.register(r'staff_management',StaffManagementViewSet,basename='staff_management')
 router.register(r'varifyotp',VerifyOTPView,basename='varifyotp')
 router.register(r'login',LoginView,basename='login')
 router.register(r'profession',ProfessionViewSet,basename='profession')
@@ -35,11 +35,19 @@ router.register(r'patientassessment',PatientAssessmentViewSet,basename='patienta
 router.register(r'web_questions',WebQuestionViewSet,basename='web_questions')
 router.register(r'web_patientassessment',WebPatientAssessmentViewSet,basename='web_patientassessment')
 router.register(r'faqs',FAQViewSet,basename='faqs')
+router.register(r'doctors',DoctorViewSet,basename='doctors')
+router.register(r'staff',StaffViewSet,basename='staff')
 router.register(r'appointments',AppointmentViewSet,basename='appointments')
-router.register(r'diagnosis_detail',DiagnosisDetailViewSet,basename='diagnosis_detail')
+router.register(r'diagnosis_detail',DiagnosisViewSet,basename='diagnosis_detail')
 router.register(r'lab_report',LabReportViewSet,basename='lab_report')
 router.register(r'history',PatientHistoryViewSet,basename='history')
 router.register(r'category',CategoryViewSet,basename='category')
+router.register(r'staff_dashboard',StaffDashBoardViewSet,basename='staff_dashboard')
+router.register(r'doctor_dashboard',DoctorDashBoardViewSet,basename='doctor_dashboard')
+router.register(r'patient_dashboard',PatientDashboardViewSet,basename='patient_dashboard')
+router.register(r'fcm',FCMDeviceAuthorizedViewSet,basename='fcm')
+router.register(r'appointment_reminder',AppointmentReminderViewSet,basename='appointment_reminder')
+router.register(r'medicine_reminder',MedicineReminderViewSet,basename='medicine_reminder')
 
 
 
